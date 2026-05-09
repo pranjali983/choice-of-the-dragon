@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dragon's Choice | Text RPG</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lora:ital@0;1&display=swap');
+
+        body {
+            background-color: #1a0f00;
+            color: #d4af37;
+            font-family: 'Lora', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        #game-container {
+            width: 90%;
+            max-width: 650px;
+            background: #2a1b0a;
+            padding: 40px;
+            border: 2px solid #5c4033;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            border-radius: 8px;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            text-align: center;
+            color: #ff4500;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #5c4033;
+            padding-bottom: 10px;
+        }
+
+        #stats {
+            display: flex;
+            justify-content: space-around;
+            background: #1a0f00;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            border-radius: 5px;
+            border: 1px inset #5c4033;
+        }
+
+        .stat-val { color: #fff; font-weight: bold; }
+
+        #story-text {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            color: #f5f5f5;
+            min-height: 100px;
+        }
+
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        button {
+            background: #3e2723;
+            color: #d4af37;
+            border: 1px solid #d4af37;
+            padding: 12px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        button:hover {
+            background: #ff4500;
+            color: white;
+            border-color: white;
+            transform: translateX(5px);
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>Dragon's Choice</h1>
+        
+        <div id="stats">
+            <div>Gold: <span id="gold" class="stat-val">0</span></div>
+            <div>Infamy: <span id="infamy" class="stat-val">0</span></div>
+            <div>Health: <span id="hp" class="stat-val">100</span>%</div>
+        </div>
+
+        <div id="story-text">
+            You awaken in your mountain cavern. Your scales are cold, and your stomach growls. The scent of sheep and frightened humans wafts up from the valley below. What will you do, Great One?
+        </div>
+
+        <div id="choices-container" class="choices">
+            </div>
+    </div>
+
+<script>
+    // Game State
+    let gold = 0;
+    let infamy = 0;
+    let hp = 100;
+
+    const storyText = document.getElementById('story-text');
+    const choicesContainer = document.getElementById('choices-container');
+
+    const scenes = {
+        start: {
+            text: "The kingdom of Oakhaven lies before you. Smoke rises from the village chimneys. You feel the urge to remind them who truly rules these lands.",
+            options: [
+                { text: "Fly down and demand a tribute of gold.", next: "tribute", gold: 0, infamy: 5 },
+                { text: "Burn the outer watchtower to show your power.", next: "burn", gold: 0, infamy: 15 },
+                { text: "Sleep for another century.", next: "sleep", gold: 0, infamy: 0 }
+            ]
+        },
+        tribute: {
+            text: "The villagers tremble as your shadow falls over the square. They offer a chest of 500 gold coins, pleading for mercy.",
+            options: [
+                { text: "Take the gold and leave in peace.", next: "peace", gold: 500, infamy: 5 },
+                { text: "Take the gold and eat the Mayor anyway.", next: "cruel", gold: 500, infamy: 30 }
+            ]
+        },
+        burn: {
+            text: "Your fire consumes the tower. The soldiers flee in terror, but one archer manages to hit your wing with a ballista bolt!",
+            options: [
+                { text: "Roar in pain and retreat to your cave.", next: "cave", gold: 0, infamy: 20, damage: 20 },
+                { text: "Destroy the entire garrison in a rage.", next: "destroy", gold: 100, infamy: 50, damage: 10 }
+            ]
+        },
+        sleep: {
+            text: "You drift into a deep slumber. When you wake, knights have surrounded your cave with heavy chains. It is over.",
+            options: [
+                { text: "Restart Adventure", next: "start", reset: true }
+            ]
+        },
+        peace: {
+            text: "You return to your hoard. You are richer, but the humans no longer fear you as they once did. You are a 'tame' dragon.",
+            options: [{ text: "The End - Play Again", next: "start", reset: true }]
+        },
+        cruel: {
+            text: "Your infamy reaches the ears of the King. Legends will be told of your cruelty. You rest on a pile of gold, waiting for heroes to challenge you.",
+            options: [{ text: "The End - Play Again", next: "start", reset: true }]
+        }
+    };
+
+    function updateStats() {
+        document.getElementById('gold').innerText = gold;
+        document.getElementById('infamy').innerText = infamy;
+        document.getElementById('hp').innerText = hp;
+    }
+
+    function showScene(sceneKey) {
+        const scene = scenes[sceneKey];
+        storyText.innerText = scene.text;
+        choicesContainer.innerHTML = '';
+
+        scene.options.forEach(option => {
+            const btn = document.createElement('button');
+            btn.innerText = option.text;
+            btn.onclick = () => {
+                if (option.reset) {
+                    gold = 0; infamy = 0; hp = 100;
+                }
+                gold += option.gold || 0;
+                infamy += option.infamy || 0;
+                hp -= option.damage || 0;
+                
+                updateStats();
+                showScene(option.next);
+            };
+            choicesContainer.appendChild(btn);
+        });
+    }
+
+    // Start the game
+    updateStats();
+    showScene('start');
+</script>
+</body>
+</html>
